@@ -1,6 +1,6 @@
 # Venera-Sources
 
-Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.9 / 预览版**，要求 Venera 1.6.0 或更新版本。
+Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.10 / 预览版**，要求 Venera 1.6.0 或更新版本。
 
 ## 直接安装
 
@@ -122,6 +122,12 @@ https://cdn.jsdelivr.net/gh/dxmsk/Venera-Sources@main/index.json
 ## 0.1.9 验证后转圈修复
 
 用户反馈 Inkveil 能完成 CF 验证，但返回首页后一直转圈。0.1.8仍在 JS 中检查响应 HTML，验证通过的200页面会带 Cloudflare 被动 jsd 脚本，导致再次抛挑战并触发重试循环。0.1.9 完全移除 JS 层 HTML 挑战判断，仅保留 Inkveil/Venera 原生 Network 拦截器的 Cloudflare 异常；正常200响应直接交给解析器。
+
+## 0.1.10 按设备诊断切换 GET
+
+Inkveil设备截图显示：本地HTML解析返回成功；首页GET返回status 200、body string、194338字符；列表POST没有显示诊断报告。尚无POST错误原文，不能断言具体失败原因。
+
+本版默认使用GET，最新更新首屏精确请求`https://bakamh.com/`，与设备成功探针一致；更新设置键为`inkveilTransport`，不再沿用旧版listMode=ajax。POST仅保留为手选兼容模式。回归覆盖默认不调用POST、精确首页URL、旧设置迁移、原生异常透传。保存真实页面回放首页36条、搜索1、目录20、首话30图、分类9通过。仍需Inkveil设备确认完整源的导入及首页；GET探针的200不等于已证明完整源成功。
 
 ## 本地验证
 

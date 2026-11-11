@@ -2,12 +2,12 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.9';
+    version = '0.1.10';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
         domain: { title: '网站域名', type: 'input', default: 'https://bakamh.com' },
-        listMode: { title: '列表加载方式', type: 'select', options: [{ value: 'ajax', text: 'AJAX 接口（默认）' }, { value: 'html', text: '网页 GET' }], default: 'ajax' },
+        inkveilTransport: { title: '列表加载方式', type: 'select', options: [{ value: 'html', text: '网页 GET（默认）' }, { value: 'ajax', text: 'AJAX POST（兼容选项）' }], default: 'html' },
         website: { title: '在浏览器查看网站（不共享验证 Cookie）', type: 'callback', buttonText: '打开网站', callback: () => UI.launchUrl(this.base) }
     };
     // Venera exposes embedded WebView through the account configuration.
@@ -84,14 +84,14 @@ class Bakamh extends ComicSource {
         } finally { doc.dispose(); }
     }
     async list(page = 1, order = 'latest', keyword = '', genre = '') {
-        // Inkveil 1.0 reached this source through the AJAX request directly.
-        // Keep that first request intact so its native CF trigger remains
-        // attached to the actual content load.
-        if (!keyword && !genre.startsWith('/') && (this.loadSetting('listMode') || 'ajax') === 'ajax') return this.ajaxList(page, order, keyword, genre);
+        // Device probe: homepage GET completed, while POST produced no report.
+        // Default to GET and ignore the old saved listMode setting.
+        if (!keyword && !genre.startsWith('/') && this.loadSetting('inkveilTransport') === 'ajax') return this.ajaxList(page, order, keyword, genre);
         let path = keyword ? '/' : genre ? (genre.startsWith('/') ? genre : '/manga-genre/' + genre + '/') : '/';
         if (page > 1) path += 'page/' + page + '/';
         const params = keyword ? { s: keyword, post_type: 'wp-manga' } : { m_orderby: order === 'new' ? 'new-manga' : order };
-        const html = await this.request(path + '?' + this.form(params));
+        const target = !keyword && !genre && order === 'latest' && page === 1 ? '/' : path + '?' + this.form(params);
+        const html = await this.request(target);
         const comics = this.parseList(html);
         const doc = new HtmlDocument(html);
         try {
