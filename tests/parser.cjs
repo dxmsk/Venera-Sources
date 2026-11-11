@@ -22,6 +22,14 @@ const ctx={ComicSource:class {loadSetting(){return null;}},Comic:function(x){Obj
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'bakamh.js'),'utf8')+'\nglobalThis.source=new Bakamh();',ctx);
 const s=ctx.source;
 (async()=>{
+ const normalGet=ctx.Network.get;
+ ctx.Network.get=async()=>{throw 'CloudflareException: https://bakamh.com/';};
+ await assert.rejects(s.list(1),e=>String(e)==='CloudflareException: https://bakamh.com/');
+ ctx.Network.get=normalGet;
+ response={status:200,body:''};requests=[];await s.list(1);
+ assert.equal(requests[0][0],'https://bakamh.com/');
+ assert.equal(requests[1][0],'https://bakamh.com/wp-admin/admin-ajax.php');
+ s.loadSetting=k=>k==='listMode'?'html':null;
  const list='<div class="page-item-detail"><div class="post-title"><a href="https://bakamh.com/manga/example/">样本漫画</a></div><img data-src="//cdn.example/cover.jpg"></div>';
  let c=s.parseList(list+list);assert.equal(c.length,1);assert.equal(c[0].id,'/manga/example/');assert.equal(c[0].cover,'https://cdn.example/cover.jpg');
  let chapters=s.chaptersFrom('<ul class="version-chap"><li class="renamed"><a href="/manga/example/2/">第2话</a></li><li><a href="/manga/example/1/">第1话</a></li></ul>','https://bakamh.com/manga/example/');assert.equal([...chapters.values()].join(','),'第1话,第2话');

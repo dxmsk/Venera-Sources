@@ -2,12 +2,12 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.1';
+    version = '0.1.2';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
         domain: { title: '网站域名', type: 'input', default: 'https://bakamh.com' },
-        transport: { title: '列表加载方式', type: 'select', options: [{ value: 'html', text: '网页 GET（默认）' }, { value: 'ajax', text: 'AJAX 接口' }], default: 'html' },
+        listMode: { title: '列表加载方式', type: 'select', options: [{ value: 'ajax', text: 'AJAX 接口（默认）' }, { value: 'html', text: '网页 GET' }], default: 'ajax' },
         website: { title: '在浏览器查看网站（不共享验证 Cookie）', type: 'callback', buttonText: '打开网站', callback: () => UI.launchUrl(this.base) }
     };
     get base() { return (this.loadSetting('domain') || 'https://bakamh.com').trim().replace(/\/+$/, ''); }
@@ -78,7 +78,10 @@ class Bakamh extends ComicSource {
         } finally { doc.dispose(); }
     }
     async list(page = 1, order = 'latest', keyword = '', genre = '') {
-        if ((this.loadSetting('transport') || 'html') === 'ajax') return this.ajaxList(page, order, keyword, genre);
+        // Always visit the real homepage first. Archive/search routes may return
+        // an empty or blocked page without exposing a navigable CF challenge.
+        if (page === 1) await this.request('/');
+        if ((this.loadSetting('listMode') || 'ajax') === 'ajax') return this.ajaxList(page, order, keyword, genre);
         let path = keyword ? '/' : genre ? '/manga-genre/' + encodeURIComponent(genre) + '/' : '/manga/';
         if (page > 1) path += 'page/' + page + '/';
         const params = keyword ? { s: keyword, post_type: 'wp-manga' } : { m_orderby: order === 'new' ? 'new-manga' : order };
