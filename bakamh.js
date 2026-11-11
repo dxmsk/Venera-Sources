@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.4';
+    version = '0.1.5';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -39,23 +39,17 @@ class Bakamh extends ComicSource {
         const url = this.absolute(path);
         const headers = this.headers(referer || this.base + '/');
         let res;
-        try {
-            if (values === null) res = await Network.get(url, headers);
-            else {
-                headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-                headers['X-Requested-With'] = 'XMLHttpRequest';
-                res = await Network.post(url, headers, this.form(values));
-            }
-        } catch (error) {
-            // Venera's interceptor throws before returning a response. An AJAX
-            // endpoint is not a navigable challenge page; verify the homepage.
-            if (String(error).includes('CloudflareException:')) throw 'CloudflareException: ' + this.base + '/';
-            throw error;
+        // Keep this path identical to the 0.1.0 trigger path. Inkveil
+        // recognizes the native CloudflareException thrown by Network itself;
+        // catching and rewriting it prevents its verification UI from opening.
+        if (values === null) res = await Network.get(url, headers);
+        else {
+            headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+            headers['X-Requested-With'] = 'XMLHttpRequest';
+            res = await Network.post(url, headers, this.form(values));
         }
         const body = String(res.body || '');
-        // Cloudflare also injects challenge-platform/jsd scripts into valid
-        // HTTP 200 pages. That script alone is not a challenge page.
-        if (/<title[^>]*>\s*(?:Just a moment|Attention Required)/i.test(body) || (res.status === 403 && /cf-chl-|challenge-platform/.test(body))) throw 'CloudflareException: ' + this.base + '/';
+        if (/Just a moment|cf-chl-|challenge-platform/.test(body)) throw 'CloudflareException: ' + this.base + '/';
         if (res.status !== 200) throw '巴卡漫画 HTTP ' + res.status;
         return body;
     }
