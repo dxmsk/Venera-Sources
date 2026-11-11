@@ -39,6 +39,11 @@ const s=ctx.source;
  response={status:200,body:list+'<a class="nextpostslink" href="/manga/page/2/">Next</a>'};assert.equal((await s.list()).maxPage,2);
  response={status:200,body:'<html>Unknown layout</html>'};await assert.rejects(s.list(),e=>String(e).includes('未解析到漫画列表'));
  response={status:403,body:'Just a moment... cf-chl-'};await assert.rejects(s.request('/'),e=>String(e)==='CloudflareException: https://bakamh.com/');
+ response={status:200,body:'<title>正常漫画页面</title><script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script>'};assert.equal(await s.request('/'),response.body);
+ response={status:200,body:'<title>Just a moment...</title>'};await assert.rejects(s.request('/'),e=>String(e).startsWith('CloudflareException:'));
+ const modern='<article class="mkjp-sr__item"><h3 class="mkjp-sr__title"><a href="/manga/example/">新搜索</a></h3><img src="/cover.webp"></article>';assert.equal(s.parseList(modern)[0].title,'新搜索');
+ response={status:200,body:'<a href="/on-going/zh/">中文连载</a><a href="/end/">完结</a>'};assert.equal((await s.category.parts[0].loader()).length,2);
+ response={status:200,body:list};await s.categoryComics.load('/on-going/zh/',null,[],1);assert.equal(new URL(requests.at(-1)[0]).pathname,'/on-going/zh/');
  const pass='testnonce',salt=Buffer.from('0011223344556677','hex');let key=Buffer.alloc(0),prev=Buffer.alloc(0);while(key.length<48){prev=crypto.createHash('md5').update(Buffer.concat([prev,Buffer.from(pass),salt])).digest();key=Buffer.concat([key,prev]);}
  const images=['https://cdn.example/001.jpg','https://cdn.example/002.jpg'];const enc=crypto.createCipheriv('aes-256-cbc',key.subarray(0,32),key.subarray(32,48));const ct=Buffer.concat([enc.update(JSON.stringify(JSON.stringify(images))),enc.final()]).toString('base64');
  const script=`var wpmangaprotectornonce='${pass}';var chapter_data='${JSON.stringify({ct,s:salt.toString('hex')})}';`;

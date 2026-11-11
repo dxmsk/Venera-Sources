@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.2';
+    version = '0.1.3';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -44,7 +44,9 @@ class Bakamh extends ComicSource {
             throw error;
         }
         const body = String(res.body || '');
-        if (/Just a moment|cf-chl-|challenge-platform/.test(body)) throw 'CloudflareException: ' + this.base + '/';
+        // Cloudflare also injects challenge-platform/jsd scripts into valid
+        // HTTP 200 pages. That script alone is not a challenge page.
+        if (/<title[^>]*>\s*(?:Just a moment|Attention Required)/i.test(body) || (res.status === 403 && /cf-chl-|challenge-platform/.test(body))) throw 'CloudflareException: ' + this.base + '/';
         if (res.status !== 200) throw '巴卡漫画 HTTP ' + res.status;
         return body;
     }
@@ -65,8 +67,8 @@ class Bakamh extends ComicSource {
         const doc = new HtmlDocument(html);
         try {
             const seen = new Set(), comics = [];
-            for (const card of doc.querySelectorAll('div.page-item-detail, .manga__item, .c-tabs-item__content')) {
-                const a = card.querySelector('.post-title a');
+            for (const card of doc.querySelectorAll('div.page-item-detail, .manga__item, .c-tabs-item__content, article.mkjp-sr__item')) {
+                const a = card.querySelector('.post-title a, .mkjp-sr__title a');
                 if (!a) continue;
                 const id = this.path(a.attributes.href || '');
                 const title = a.text.trim();
@@ -81,8 +83,8 @@ class Bakamh extends ComicSource {
         // Always visit the real homepage first. Archive/search routes may return
         // an empty or blocked page without exposing a navigable CF challenge.
         if (page === 1) await this.request('/');
-        if ((this.loadSetting('listMode') || 'ajax') === 'ajax') return this.ajaxList(page, order, keyword, genre);
-        let path = keyword ? '/' : genre ? '/manga-genre/' + encodeURIComponent(genre) + '/' : '/manga/';
+        if (!keyword && !genre.startsWith('/') && (this.loadSetting('listMode') || 'ajax') === 'ajax') return this.ajaxList(page, order, keyword, genre);
+        let path = keyword ? '/' : genre ? (genre.startsWith('/') ? genre : '/manga-genre/' + genre + '/') : '/';
         if (page > 1) path += 'page/' + page + '/';
         const params = keyword ? { s: keyword, post_type: 'wp-manga' } : { m_orderby: order === 'new' ? 'new-manga' : order };
         const html = await this.request(path + '?' + this.form(params));
@@ -124,15 +126,16 @@ class Bakamh extends ComicSource {
     category = {
         title: '巴卡分类', enableRankingPage: true,
         parts: [{ name: '题材', type: 'dynamic', loader: async () => {
-            const doc = new HtmlDocument(await this.request('/manga/'));
+            const doc = new HtmlDocument(await this.request('/'));
             try {
                 const seen = new Set(), result = [];
-                for (const a of doc.querySelectorAll('a[href*="/manga-genre/"]')) {
-                    const match = (a.attributes.href || '').match(/\/manga-genre\/([^/?#]+)/);
+                for (const a of doc.querySelectorAll('a[href]')) {
+                    const path = this.path(a.attributes.href || '');
+                    if (!/^\/(?:on-going|end|newmanga|manga-genre)\//.test(path)) continue;
                     const label = a.text.trim();
-                    if (!match || !label || seen.has(match[1])) continue;
-                    seen.add(match[1]);
-                    result.push({ label, target: { page: 'category', attributes: { category: match[1], param: null } } });
+                    if (!label || seen.has(path)) continue;
+                    seen.add(path);
+                    result.push({ label, target: { page: 'category', attributes: { category: path, param: null } } });
                 }
                 if (!result.length) throw '网站未返回分类链接，请完成网站验证后重试。';
                 return result;
