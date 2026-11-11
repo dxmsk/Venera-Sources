@@ -1,6 +1,6 @@
 # Venera-Sources
 
-Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.0 / 预览版**，要求 Venera 1.6.0 或更新版本。
+Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.1 / 预览版**，要求 Venera 1.6.0 或更新版本。
 
 ## 直接安装
 
@@ -61,6 +61,16 @@ https://cdn.jsdelivr.net/gh/dxmsk/Venera-Sources@main/index.json
 - 8 组离线合成样本验证通过：列表去重/封面、章节改名与顺序、搜索参数与分页、Cloudflare 错误、AES 图片数据、普通阅读图片、base64 protector 脚本、受限章节提示。
 - 本执行环境访问目标网站首页、www 和 robots 均返回 HTTP 403 Cloudflare 验证页，未取得真实阅读页；**尚未在 Venera 实机完成搜索到阅读的全链路验证**。
 - 预览版的功能列表描述已实现的解析能力，不代表目标站点实时成功率。网站接口或页面变化需要后续更新。
+
+## 0.1.1 加载修复
+
+- 默认使用网页 GET 加载列表与搜索，源设置可切回 AJAX 接口。
+- 捕获 Venera 原生拦截器抛出的 Cloudflare 异常，将验证地址统一指向网站首页，避免内置 WebView 打开只接受 POST 的 admin-ajax 接口。
+- 首页未解析到漫画时给出具体提示，避免静默空列表。
+- 新增 GET 搜索分页、HTML 下一页、原生拦截器异常重定向和未知布局的回归测试，测试通过。
+- 原站当前仍返回 Cloudflare 403，本次修复未获得实机成功证据。
+
+已安装的旧版可在漫画源管理中点击更新，确认版本变为 0.1.1。出现验证提示时使用 Venera 内置验证按钮。
 
 ## 本地验证
 

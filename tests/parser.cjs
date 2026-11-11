@@ -25,7 +25,11 @@ const s=ctx.source;
  const list='<div class="page-item-detail"><div class="post-title"><a href="https://bakamh.com/manga/example/">样本漫画</a></div><img data-src="//cdn.example/cover.jpg"></div>';
  let c=s.parseList(list+list);assert.equal(c.length,1);assert.equal(c[0].id,'/manga/example/');assert.equal(c[0].cover,'https://cdn.example/cover.jpg');
  let chapters=s.chaptersFrom('<ul class="version-chap"><li class="renamed"><a href="/manga/example/2/">第2话</a></li><li><a href="/manga/example/1/">第1话</a></li></ul>','https://bakamh.com/manga/example/');assert.equal([...chapters.values()].join(','),'第1话,第2话');
- response={status:200,body:list};let result=await s.search.load('关键词 & 空格',[],2);assert.equal(result.comics.length,1);let p=new URLSearchParams(requests.at(-1)[2]);assert.equal(p.get('vars[s]'),'关键词 & 空格');assert.equal(p.get('page'),'1');
+ response={status:200,body:list};let result=await s.search.load('关键词 & 空格',[],2);assert.equal(result.comics.length,1);let u=new URL(requests.at(-1)[0]);assert.equal(u.searchParams.get('s'),'关键词 & 空格');assert.equal(u.pathname,'/page/2/');
+ await s.ajaxList(2,'latest','关键词 & 空格');let p=new URLSearchParams(requests.at(-1)[2]);assert.equal(p.get('vars[s]'),'关键词 & 空格');assert.equal(p.get('page'),'1');
+ const normalPost=ctx.Network.post;ctx.Network.post=async()=>{throw 'CloudflareException: https://bakamh.com/wp-admin/admin-ajax.php';};await assert.rejects(s.ajaxList(),e=>String(e)==='CloudflareException: https://bakamh.com/');ctx.Network.post=normalPost;
+ response={status:200,body:list+'<a class="nextpostslink" href="/manga/page/2/">Next</a>'};assert.equal((await s.list()).maxPage,2);
+ response={status:200,body:'<html>Unknown layout</html>'};await assert.rejects(s.list(),e=>String(e).includes('未解析到漫画列表'));
  response={status:403,body:'Just a moment... cf-chl-'};await assert.rejects(s.request('/'),e=>String(e)==='CloudflareException: https://bakamh.com/');
  const pass='testnonce',salt=Buffer.from('0011223344556677','hex');let key=Buffer.alloc(0),prev=Buffer.alloc(0);while(key.length<48){prev=crypto.createHash('md5').update(Buffer.concat([prev,Buffer.from(pass),salt])).digest();key=Buffer.concat([key,prev]);}
  const images=['https://cdn.example/001.jpg','https://cdn.example/002.jpg'];const enc=crypto.createCipheriv('aes-256-cbc',key.subarray(0,32),key.subarray(32,48));const ct=Buffer.concat([enc.update(JSON.stringify(JSON.stringify(images))),enc.final()]).toString('base64');

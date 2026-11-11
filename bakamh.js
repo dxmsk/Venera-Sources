@@ -2,11 +2,12 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.0';
+    version = '0.1.1';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
         domain: { title: '网站域名', type: 'input', default: 'https://bakamh.com' },
+        transport: { title: '列表加载方式', type: 'select', options: [{ value: 'html', text: '网页 GET（默认）' }, { value: 'ajax', text: 'AJAX 接口' }], default: 'html' },
         website: { title: '在浏览器查看网站（不共享验证 Cookie）', type: 'callback', buttonText: '打开网站', callback: () => UI.launchUrl(this.base) }
     };
     get base() { return (this.loadSetting('domain') || 'https://bakamh.com').trim().replace(/\/+$/, ''); }
@@ -29,11 +30,18 @@ class Bakamh extends ComicSource {
         const url = this.absolute(path);
         const headers = this.headers(referer || this.base + '/');
         let res;
-        if (values === null) res = await Network.get(url, headers);
-        else {
-            headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-            headers['X-Requested-With'] = 'XMLHttpRequest';
-            res = await Network.post(url, headers, this.form(values));
+        try {
+            if (values === null) res = await Network.get(url, headers);
+            else {
+                headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+                headers['X-Requested-With'] = 'XMLHttpRequest';
+                res = await Network.post(url, headers, this.form(values));
+            }
+        } catch (error) {
+            // Venera's interceptor throws before returning a response. An AJAX
+            // endpoint is not a navigable challenge page; verify the homepage.
+            if (String(error).includes('CloudflareException:')) throw 'CloudflareException: ' + this.base + '/';
+            throw error;
         }
         const body = String(res.body || '');
         if (/Just a moment|cf-chl-|challenge-platform/.test(body)) throw 'CloudflareException: ' + this.base + '/';
@@ -70,6 +78,20 @@ class Bakamh extends ComicSource {
         } finally { doc.dispose(); }
     }
     async list(page = 1, order = 'latest', keyword = '', genre = '') {
+        if ((this.loadSetting('transport') || 'html') === 'ajax') return this.ajaxList(page, order, keyword, genre);
+        let path = keyword ? '/' : genre ? '/manga-genre/' + encodeURIComponent(genre) + '/' : '/manga/';
+        if (page > 1) path += 'page/' + page + '/';
+        const params = keyword ? { s: keyword, post_type: 'wp-manga' } : { m_orderby: order === 'new' ? 'new-manga' : order };
+        const html = await this.request(path + '?' + this.form(params));
+        const comics = this.parseList(html);
+        const doc = new HtmlDocument(html);
+        try {
+            const hasNext = !!doc.querySelector('a.nextpostslink, .nav-previous a, a.next.page-numbers, #navigation-ajax');
+            if (!comics.length && page === 1 && !keyword) throw '未解析到漫画列表。请完成站内验证；若网站已正常显示，可在源设置切换为 AJAX 接口后重试。';
+            return { comics, maxPage: hasNext && comics.length ? page + 1 : page };
+        } finally { doc.dispose(); }
+    }
+    async ajaxList(page = 1, order = 'latest', keyword = '', genre = '') {
         const fields = {
             action: 'madara_load_more', page: String(page - 1),
             template: 'madara-core/content/content-archive',
