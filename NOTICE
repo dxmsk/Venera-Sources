@@ -1,0 +1,15 @@
+Venera-Sources — Bakamh adapter
+Copyright 2026 dxmsk contributors
+
+The JavaScript adapter was written for Venera. Its Madara protocol handling,
+CSS selectors, and chapter protector algorithm were informed by the
+Apache-2.0-licensed Keiyoushi extensions-source project:
+https://github.com/keiyoushi/extensions-source
+Relevant paths: src/zh/bakamh and lib-multisrc/madara.
+Copyright remains with the respective upstream contributors.
+
+Venera interfaces were checked against venera-app/venera-configs and
+venera-app/venera. These projects are referenced for compatibility; their
+runtime or source files are not bundled here.
+
+Offline tests use synthetic HTML and synthetic encrypted image URLs only.

@@ -1,0 +1,7 @@
+{
+  "name": "venera-sources-dxmsk",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": { "test": "node --check bakamh.js && node tests/parser.cjs" },
+  "devDependencies": { "linkedom": "0.18.12" }
+}

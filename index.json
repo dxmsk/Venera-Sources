@@ -1,0 +1,10 @@
+[
+  {
+    "name": "巴卡漫画（预览版）",
+    "key": "bakamh",
+    "version": "0.1.0",
+    "fileName": "bakamh.js",
+    "url": "https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js",
+    "description": "巴卡漫画 bakamh.com。Madara 解析预览版，支持内置 Cloudflare 验证入口；已做离线样本测试，真实阅读待实机验证。"
+  }
+]
