@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.6';
+    version = '0.1.7';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -124,15 +124,14 @@ class Bakamh extends ComicSource {
         return { comics, maxPage: comics.length >= 25 ? page + 1 : page };
     }
     explore = [
-        {
-            title: '网站验证', type: 'multiPageComicList',
-            // Dedicated user-selected page; no network prerequisite. Venera's
-            // standard error component offers its native Verify button here.
-            load: async () => { throw 'CloudflareException: ' + this.base + '/'; }
-        },
         { title: '最新更新', type: 'multiPageComicList', load: page => this.list(page, 'latest') },
         { title: '热门漫画', type: 'multiPageComicList', load: page => this.list(page, 'views') },
-        { title: '最新上架', type: 'multiPageComicList', load: page => this.list(page, 'new') }
+        { title: '最新上架', type: 'multiPageComicList', load: page => this.list(page, 'new') },
+        {
+            title: '网站验证', type: 'multiPageComicList',
+            // Keep the real content page first; this is only a manual fallback.
+            load: async () => { throw 'CloudflareException: ' + this.base + '/'; }
+        }
     ];
     search = { load: (keyword, options, page) => this.list(page, 'latest', keyword) };
     category = {

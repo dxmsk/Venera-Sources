@@ -22,6 +22,8 @@ const ctx={ComicSource:class {loadSetting(){return null;}},Comic:function(x){Obj
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'bakamh.js'),'utf8')+'\nglobalThis.source=new Bakamh();',ctx);
 const s=ctx.source;
 (async()=>{
+ assert.equal(s.explore[0].title,'最新更新');
+ assert.equal(s.explore[s.explore.length-1].title,'网站验证');
  await assert.rejects(s.explore.find(p=>p.title==='网站验证').load(1),e=>String(e)==='CloudflareException: https://bakamh.com/');
  assert.equal(s.account.loginWithWebview.checkStatus('https://bakamh.com/','Just a moment...'),false);
  assert.equal(s.account.loginWithWebview.checkStatus('https://other.example/','巴卡漫画'),false);

@@ -1,6 +1,6 @@
 # Venera-Sources
 
-Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.6 / 预览版**，要求 Venera 1.6.0 或更新版本。
+Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.7 / 预览版**，要求 Venera 1.6.0 或更新版本。
 
 ## 直接安装
 
@@ -108,6 +108,10 @@ https://cdn.jsdelivr.net/gh/dxmsk/Venera-Sources@main/index.json
 - 原站当前仍返回 Cloudflare 403，本次修复未获得实机成功证据。
 
 已安装的旧版可在漫画源管理中点击更新，确认版本变为 0.1.1。出现验证提示时使用 Venera 内置验证按钮。
+
+## 0.1.7 首页内容修复
+
+把「网站验证」从首页首项移到最后，恢复 Inkveil 打开源时第一项直接显示「最新更新」。验证完成后从「最新更新」加载内容；「网站验证」仅作为手动验证入口。
 
 ## 本地验证
 
