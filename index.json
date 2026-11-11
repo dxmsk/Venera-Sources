@@ -2,7 +2,7 @@
   {
     "name": "巴卡漫画（预览版）",
     "key": "bakamh",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "fileName": "bakamh.js",
     "url": "https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js",
     "description": "巴卡漫画 bakamh.com。已通过验证会话实测列表/分页/搜索/分类/目录/图片下载，Venera 设备端待验证。"

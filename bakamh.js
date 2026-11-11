@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.11';
+    version = '0.1.12';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -205,15 +205,9 @@ class Bakamh extends ComicSource {
             };
         } finally { doc.dispose(); }
         if (!details.title) throw '未识别漫画详情页，请检查网站验证状态或反馈页面地址。';
-        let chapters = this.chaptersFrom(html, pageUrl);
-        if (!chapters.size) {
-            // Current Madara route; no fallback hides network/Cloudflare errors.
-            const result = await this.request(this.path(pageUrl).replace(/\/+$/, '') + '/ajax/chapters/', {}, pageUrl);
-            chapters = this.chaptersFrom(result, pageUrl);
-        }
-        if (!chapters.size && /^\d+$/.test(postId || '')) {
-            chapters = this.chaptersFrom(await this.request('/wp-admin/admin-ajax.php', { action: 'manga_get_chapters', manga: postId }, pageUrl), pageUrl);
-        }
+        // The detail page already contains the complete current chapter list.
+        // Avoid an extra AJAX request after Inkveil has just passed CF.
+        const chapters = this.chaptersFrom(html, pageUrl);
         if (!chapters.size) throw '网站返回空目录；该漫画可能需要登录，或目录接口已变化。';
         return new ComicDetails({ ...details, chapters });
     }
@@ -268,7 +262,7 @@ class Bakamh extends ComicSource {
     comic = {
         loadInfo: id => this.info(id),
         loadEp: (comicId, epId) => this.episode(comicId, epId),
-        onImageLoad: async (url, comicId, epId) => ({ url: this.absolute(url), method: 'GET', headers: await this.sessionHeaders(this.absolute(url), this.absolute(epId || comicId)) }),
-        onThumbnailLoad: async url => ({ url: this.absolute(url), method: 'GET', headers: await this.sessionHeaders(this.absolute(url)) })
+        onImageLoad: async (url, comicId, epId) => ({ url: this.absolute(url), headers: await this.sessionHeaders(this.absolute(url), this.absolute(epId || comicId)) }),
+        onThumbnailLoad: async url => ({ url: this.absolute(url), headers: await this.sessionHeaders(this.absolute(url)) })
     };
 }
