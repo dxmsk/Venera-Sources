@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.8';
+    version = '0.1.9';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -48,13 +48,11 @@ class Bakamh extends ComicSource {
             headers['X-Requested-With'] = 'XMLHttpRequest';
             res = await Network.post(url, headers, this.form(values));
         }
-        const body = String(res.body || '');
-        // A successful page can contain Cloudflare's passive jsd script.
-        // Preserve native Network exceptions above, but do not re-challenge
-        // valid HTTP 200 content merely because that script is present.
-        if (/<title[^>]*>\s*(?:Just a moment|Attention Required)/i.test(body) || (res.status === 403 && /cf-chl-|challenge-platform/.test(body))) throw 'CloudflareException: ' + this.base + '/';
+        // Let Inkveil's native interceptor be the sole Cloudflare detector.
+        // A passed page still contains Cloudflare's passive jsd script; parsing
+        // response HTML here causes the post-verify retry to spin forever.
         if (res.status !== 200) throw '巴卡漫画 HTTP ' + res.status;
-        return body;
+        return String(res.body || '');
     }
     image(element) {
         if (!element) return '';
