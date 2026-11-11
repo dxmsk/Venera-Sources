@@ -2,7 +2,7 @@
 class BakamhPreload extends ComicSource {
     name = '巴卡漫画（Inkveil预加载版）';
     key = 'dxmsk_bakamh_preload';
-    version = '0.2.0';
+    version = '0.2.1';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh_preload.js';
     settings = {
@@ -166,12 +166,16 @@ class BakamhPreload extends ComicSource {
     };
     detailMemory = {};
     browseMemory = {};
+    preloadErrors = {};
     cacheKey(id) { return 'preload_detail_v1:' + this.path(id); }
     cachedInfo(id) {
         const key = this.path(id);
         let record = this.detailMemory[key];
         if (!record && typeof this.loadData === 'function') record = this.loadData(this.cacheKey(id));
-        if (!record || !Array.isArray(record.entries) || !record.entries.length) throw '目录尚未预载。请返回对应书库页刷新，卡片出现后再进入。';
+        if (!record || !Array.isArray(record.entries) || !record.entries.length) {
+            if (this.preloadErrors[key]) throw this.preloadErrors[key];
+            throw '目录尚未预载。请返回对应书库页刷新后重试。';
+        }
         // Must stay synchronous: no Network, DOM, cookie calls, or async helper.
         return new ComicDetails({ title: record.title, cover: record.cover,
             description: record.description, tags: record.tags || {},
@@ -204,17 +208,28 @@ class BakamhPreload extends ComicSource {
         for (const card of selected) {
             const key = this.path(card.id);
             let record = this.detailMemory[key];
-            if (!record || Date.now() - record.fetchedAt > 30 * 60 * 1000) {
-                const info = await this.fetchInfo(card.id);
-                record = { title:info.title, cover:info.cover || card.cover,
-                    description:info.description || '', tags:info.tags || {},
-                    entries:Array.from(info.chapters), fetchedAt:Date.now() };
-                if (!record.entries.length) throw '预载目录为空：' + card.title;
-                if (typeof this.saveData === 'function') this.saveData(this.cacheKey(card.id),record);
-                this.detailMemory[key] = record;
+            if (!record && typeof this.loadData === 'function') record = this.loadData(this.cacheKey(card.id));
+            try {
+                if (!record || Date.now() - record.fetchedAt > 30 * 60 * 1000) {
+                    const info = await this.fetchInfo(card.id);
+                    const fresh = { title:info.title, cover:info.cover || card.cover,
+                        description:info.description || '', tags:info.tags || {},
+                        entries:Array.from(info.chapters), fetchedAt:Date.now() };
+                    if (!fresh.entries.length) throw '预载目录为空：' + card.title;
+                    record = fresh;
+                    this.detailMemory[key] = record;
+                    if (typeof this.saveData === 'function') this.saveData(this.cacheKey(card.id),record);
+                }
+                delete this.preloadErrors[key];
+            } catch (error) {
+                // One failed detail must not hide the entire shelf. Keep the
+                // original exception for the selected card's detail callback.
+                this.preloadErrors[key] = error;
             }
-            ready.push(new Comic({id:card.id,title:record.title,cover:record.cover,
-                subTitle:'已预载 '+record.entries.length+' 章 · '+(card.subTitle || '')}));
+            const usable = record && Array.isArray(record.entries) && record.entries.length;
+            ready.push(new Comic({id:card.id,title:usable ? record.title : card.title,
+                cover:usable ? record.cover : card.cover,
+                subTitle:usable ? '已预载 '+record.entries.length+' 章 · '+(card.subTitle || '') : '目录预载失败 · '+String(this.preloadErrors[key]).slice(0,120)}));
         }
         return {comics:ready,maxPage:flat.length > required+batchSize || !shelf.ended ? page+1 : page};
     }
