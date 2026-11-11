@@ -1,5 +1,13 @@
 [
   {
+    "name": "巴卡漫画（Inkveil预加载版）",
+    "key": "dxmsk_bakamh_preload",
+    "version": "0.2.0",
+    "fileName": "bakamh_preload.js",
+    "url": "https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh_preload.js",
+    "description": "目录在书库每页3本预加载，详情同步读缓存。H对照设备正常；本版真实图片阅读仍待设备验证。"
+  },
+  {
     "name": "巴卡漫画（预览版）",
     "key": "bakamh",
     "version": "0.1.12",
