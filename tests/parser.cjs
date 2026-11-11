@@ -22,6 +22,10 @@ const ctx={ComicSource:class {loadSetting(){return null;}},Comic:function(x){Obj
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'bakamh.js'),'utf8')+'\nglobalThis.source=new Bakamh();',ctx);
 const s=ctx.source;
 (async()=>{
+ await assert.rejects(s.explore.find(p=>p.title==='网站验证').load(1),e=>String(e)==='CloudflareException: https://bakamh.com/');
+ assert.equal(s.account.loginWithWebview.checkStatus('https://bakamh.com/','Just a moment...'),false);
+ assert.equal(s.account.loginWithWebview.checkStatus('https://other.example/','巴卡漫画'),false);
+ assert.equal(s.account.loginWithWebview.checkStatus('https://bakamh.com/','bakamh巴卡漫画 – 海量最新韩漫免费观看'),true);
  const normalGet=ctx.Network.get;
  ctx.Network.get=async()=>{throw 'CloudflareException: https://bakamh.com/';};
  await assert.rejects(s.list(1),e=>String(e)==='CloudflareException: https://bakamh.com/');

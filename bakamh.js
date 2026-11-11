@@ -2,13 +2,22 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.3';
+    version = '0.1.4';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
         domain: { title: '网站域名', type: 'input', default: 'https://bakamh.com' },
         listMode: { title: '列表加载方式', type: 'select', options: [{ value: 'ajax', text: 'AJAX 接口（默认）' }, { value: 'html', text: '网页 GET' }], default: 'ajax' },
         website: { title: '在浏览器查看网站（不共享验证 Cookie）', type: 'callback', buttonText: '打开网站', callback: () => UI.launchUrl(this.base) }
+    };
+    // Venera exposes embedded WebView through the account configuration.
+    // A real homepage title is required; challenge/error titles are rejected.
+    account = {
+        loginWithWebview: {
+            url: 'https://bakamh.com/',
+            checkStatus: (url, title) => /^https:\/\/(?:www\.)?bakamh\.com(?:\/|$)/i.test(url) && /巴卡漫画/.test(title) && !/Just a moment|Attention Required|验证|verification|502|403/i.test(title)
+        },
+        logout: () => {}
     };
     get base() { return (this.loadSetting('domain') || 'https://bakamh.com').trim().replace(/\/+$/, ''); }
     absolute(value, relative = this.base + '/') {
@@ -118,6 +127,12 @@ class Bakamh extends ComicSource {
         return { comics, maxPage: comics.length >= 25 ? page + 1 : page };
     }
     explore = [
+        {
+            title: '网站验证', type: 'multiPageComicList',
+            // Dedicated user-selected page; no network prerequisite. Venera's
+            // standard error component offers its native Verify button here.
+            load: async () => { throw 'CloudflareException: ' + this.base + '/'; }
+        },
         { title: '最新更新', type: 'multiPageComicList', load: page => this.list(page, 'latest') },
         { title: '热门漫画', type: 'multiPageComicList', load: page => this.list(page, 'views') },
         { title: '最新上架', type: 'multiPageComicList', load: page => this.list(page, 'new') }
