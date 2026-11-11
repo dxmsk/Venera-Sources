@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.7';
+    version = '0.1.8';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -86,9 +86,9 @@ class Bakamh extends ComicSource {
         } finally { doc.dispose(); }
     }
     async list(page = 1, order = 'latest', keyword = '', genre = '') {
-        // Always visit the real homepage first. Archive/search routes may return
-        // an empty or blocked page without exposing a navigable CF challenge.
-        if (page === 1) await this.request('/');
+        // Inkveil 1.0 reached this source through the AJAX request directly.
+        // Keep that first request intact so its native CF trigger remains
+        // attached to the actual content load.
         if (!keyword && !genre.startsWith('/') && (this.loadSetting('listMode') || 'ajax') === 'ajax') return this.ajaxList(page, order, keyword, genre);
         let path = keyword ? '/' : genre ? (genre.startsWith('/') ? genre : '/manga-genre/' + genre + '/') : '/';
         if (page > 1) path += 'page/' + page + '/';
@@ -127,11 +127,6 @@ class Bakamh extends ComicSource {
         { title: '最新更新', type: 'multiPageComicList', load: page => this.list(page, 'latest') },
         { title: '热门漫画', type: 'multiPageComicList', load: page => this.list(page, 'views') },
         { title: '最新上架', type: 'multiPageComicList', load: page => this.list(page, 'new') },
-        {
-            title: '网站验证', type: 'multiPageComicList',
-            // Keep the real content page first; this is only a manual fallback.
-            load: async () => { throw 'CloudflareException: ' + this.base + '/'; }
-        }
     ];
     search = { load: (keyword, options, page) => this.list(page, 'latest', keyword) };
     category = {
