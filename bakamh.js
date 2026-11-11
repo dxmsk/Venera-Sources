@@ -2,7 +2,7 @@
 class Bakamh extends ComicSource {
     name = '巴卡漫画';
     key = 'bakamh';
-    version = '0.1.10';
+    version = '0.1.11';
     minAppVersion = '1.6.0';
     url = 'https://raw.githubusercontent.com/dxmsk/Venera-Sources/main/bakamh.js';
     settings = {
@@ -34,10 +34,23 @@ class Bakamh extends ComicSource {
     headers(referer = this.base + '/') {
         return { 'Referer': referer, 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.7' };
     }
+    async sessionHeaders(url, referer = this.base + '/') {
+        const headers = this.headers(referer);
+        // Only read cookies for the exact destination URL. Never copy site
+        // login/clearance cookies to a third-party image host.
+        if (typeof Network.getCookies === 'function') {
+            const cookies = await Network.getCookies(url);
+            if (Array.isArray(cookies)) {
+                const value = cookies.filter(c => c && c.name && c.value != null).map(c => c.name + '=' + c.value).join('; ');
+                if (value) headers.Cookie = value;
+            }
+        }
+        return headers;
+    }
     form(values) { return Object.keys(values).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(values[k])).join('&'); }
     async request(path, values = null, referer = null) {
         const url = this.absolute(path);
-        const headers = this.headers(referer || this.base + '/');
+        const headers = await this.sessionHeaders(url, referer || this.base + '/');
         let res;
         // Keep this path identical to the 0.1.0 trigger path. Inkveil
         // recognizes the native CloudflareException thrown by Network itself;
@@ -89,8 +102,8 @@ class Bakamh extends ComicSource {
         if (!keyword && !genre.startsWith('/') && this.loadSetting('inkveilTransport') === 'ajax') return this.ajaxList(page, order, keyword, genre);
         let path = keyword ? '/' : genre ? (genre.startsWith('/') ? genre : '/manga-genre/' + genre + '/') : '/';
         if (page > 1) path += 'page/' + page + '/';
-        const params = keyword ? { s: keyword, post_type: 'wp-manga' } : { m_orderby: order === 'new' ? 'new-manga' : order };
-        const target = !keyword && !genre && order === 'latest' && page === 1 ? '/' : path + '?' + this.form(params);
+        const params = keyword ? { s: keyword, post_type: 'wp-manga' } : null;
+        const target = params ? path + '?' + this.form(params) : path;
         const html = await this.request(target);
         const comics = this.parseList(html);
         const doc = new HtmlDocument(html);
@@ -123,12 +136,13 @@ class Bakamh extends ComicSource {
     }
     explore = [
         { title: '最新更新', type: 'multiPageComicList', load: page => this.list(page, 'latest') },
-        { title: '热门漫画', type: 'multiPageComicList', load: page => this.list(page, 'views') },
-        { title: '最新上架', type: 'multiPageComicList', load: page => this.list(page, 'new') },
+        { title: '连载漫画', type: 'multiPageComicList', load: page => this.list(page, 'latest', '', '/on-going/') },
+        { title: '完结漫画', type: 'multiPageComicList', load: page => this.list(page, 'latest', '', '/end/') },
+        { title: '新作', type: 'multiPageComicList', load: page => this.list(page, 'latest', '', '/newmanga/') }
     ];
     search = { load: (keyword, options, page) => this.list(page, 'latest', keyword) };
     category = {
-        title: '巴卡分类', enableRankingPage: true,
+        title: '巴卡分类', enableRankingPage: false,
         parts: [{ name: '题材', type: 'dynamic', loader: async () => {
             const doc = new HtmlDocument(await this.request('/'));
             try {
@@ -148,8 +162,7 @@ class Bakamh extends ComicSource {
     };
     categoryComics = {
         load: (category, param, options, page) => this.list(page, options?.[0] || 'latest', '', category),
-        optionList: [{ label: '排序', options: ['latest-更新', 'views-热度', 'new-上架'] }],
-        ranking: { options: ['views-总热度', 'trending-周热度'], load: (option, page) => this.list(page, option) }
+        optionList: []
     };
     chaptersFrom(html, pageUrl) {
         const doc = new HtmlDocument(html);
@@ -255,7 +268,7 @@ class Bakamh extends ComicSource {
     comic = {
         loadInfo: id => this.info(id),
         loadEp: (comicId, epId) => this.episode(comicId, epId),
-        onImageLoad: (url, comicId, epId) => ({ headers: this.headers(this.absolute(epId || comicId)) }),
-        onThumbnailLoad: url => ({ headers: this.headers() })
+        onImageLoad: async (url, comicId, epId) => ({ url: this.absolute(url), method: 'GET', headers: await this.sessionHeaders(this.absolute(url), this.absolute(epId || comicId)) }),
+        onThumbnailLoad: async url => ({ url: this.absolute(url), method: 'GET', headers: await this.sessionHeaders(this.absolute(url)) })
     };
 }

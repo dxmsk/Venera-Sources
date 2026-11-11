@@ -22,7 +22,8 @@ const ctx={ComicSource:class {loadSetting(){return null;}},Comic:function(x){Obj
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'bakamh.js'),'utf8')+'\nglobalThis.source=new Bakamh();',ctx);
 const s=ctx.source;
 (async()=>{
- assert.equal(s.explore.map(p=>p.title).join('|'),'最新更新|热门漫画|最新上架');
+ assert.equal(s.explore.map(p=>p.title).join('|'),'最新更新|连载漫画|完结漫画|新作');
+ assert.equal(s.category.enableRankingPage,false);
  assert.equal(s.account.loginWithWebview.checkStatus('https://bakamh.com/','Just a moment...'),false);
  assert.equal(s.account.loginWithWebview.checkStatus('https://other.example/','巴卡漫画'),false);
  assert.equal(s.account.loginWithWebview.checkStatus('https://bakamh.com/','bakamh巴卡漫画 – 海量最新韩漫免费观看'),true);
@@ -34,6 +35,11 @@ const s=ctx.source;
  s.loadSetting=k=>k==='listMode'?'ajax':null;
  const list='<div class="page-item-detail"><div class="post-title"><a href="https://bakamh.com/manga/example/">样本漫画</a></div><img data-src="//cdn.example/cover.jpg"></div>';
  response={status:200,body:list};requests=[];const postSaved=ctx.Network.post;ctx.Network.post=async()=>{throw Error('Default homepage must not POST');};assert.equal((await s.explore[0].load(1)).comics.length,1);assert.equal(requests.length,1);assert.equal(requests[0][0],'https://bakamh.com/');ctx.Network.post=postSaved;
+ requests=[];await s.explore[2].load(1);assert.equal(requests[0][0],'https://bakamh.com/end/');
+ requests=[];await s.explore[3].load(1);assert.equal(requests[0][0],'https://bakamh.com/newmanga/');
+ const cookieUrls=[];ctx.Network.getCookies=async url=>{cookieUrls.push(url);return url.startsWith('https://bakamh.com/')?[{name:'cf_clearance',value:'synthetic-test-only'}]:[];};
+ const thumb=await s.comic.onThumbnailLoad('https://bakamh.com/cover.jpg');assert.equal(thumb.url,'https://bakamh.com/cover.jpg');assert.equal(thumb.headers.Cookie,'cf_clearance=synthetic-test-only');
+ const remote=await s.comic.onImageLoad('https://images.example/page.webp','/manga/example/','/manga/example/1/');assert.equal(remote.headers.Cookie,undefined);assert.equal(cookieUrls.at(-1),'https://images.example/page.webp');delete ctx.Network.getCookies;
  let c=s.parseList(list+list);assert.equal(c.length,1);assert.equal(c[0].id,'/manga/example/');assert.equal(c[0].cover,'https://cdn.example/cover.jpg');
  let chapters=s.chaptersFrom('<ul class="version-chap"><li class="renamed"><a href="/manga/example/2/">第2话</a></li><li><a href="/manga/example/1/">第1话</a></li></ul>','https://bakamh.com/manga/example/');assert.equal([...chapters.values()].join(','),'第1话,第2话');
  response={status:200,body:list};let result=await s.search.load('关键词 & 空格',[],2);assert.equal(result.comics.length,1);let u=new URL(requests.at(-1)[0]);assert.equal(u.searchParams.get('s'),'关键词 & 空格');assert.equal(u.pathname,'/page/2/');

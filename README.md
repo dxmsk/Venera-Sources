@@ -1,6 +1,6 @@
 # Venera-Sources
 
-Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.10 / 预览版**，要求 Venera 1.6.0 或更新版本。
+Venera 自定义漫画书源。当前包含巴卡漫画 `https://bakamh.com`，版本 **0.1.11 / 预览版**，要求 Venera 1.6.0 或更新版本。
 
 ## 直接安装
 
@@ -128,6 +128,17 @@ https://cdn.jsdelivr.net/gh/dxmsk/Venera-Sources@main/index.json
 Inkveil设备截图显示：本地HTML解析返回成功；首页GET返回status 200、body string、194338字符；列表POST没有显示诊断报告。尚无POST错误原文，不能断言具体失败原因。
 
 本版默认使用GET，最新更新首屏精确请求`https://bakamh.com/`，与设备成功探针一致；更新设置键为`inkveilTransport`，不再沿用旧版listMode=ajax。POST仅保留为手选兼容模式。回归覆盖默认不调用POST、精确首页URL、旧设置迁移、原生异常透传。保存真实页面回放首页36条、搜索1、目录20、首话30图、分类9通过。仍需Inkveil设备确认完整源的导入及首页；GET探针的200不等于已证明完整源成功。
+
+## 0.1.11 封面、栏目和详情修复
+
+用户设备已显示首页文字，但封面为空、不同栏目内容重复、详情书籍列表加载失败。新会话真实实测确认：同一封面带 bakamh 会话返回 `200 image/jpeg`，无 Cookie 返回 `403`；`/on-going/`、`/end/`、`/newmanga/`返回不同列表；目标《魔法少女露美娜》详情返回27话，首话63张图。
+
+本版：
+
+- `onThumbnailLoad` 和 `onImageLoad` 根据目标 URL读取同站 Cookie，并显式使用 GET；第三方图源不附带 bakamh Cookie。
+- 首页栏目改为最新更新、连载漫画、完结漫画、新作，不再用返回相同首页的伪排行参数。
+- 关闭未验证的排行页面入口。
+- 真实网络调用书源原函数跑通四栏、目标详情27话和首话63图；Inkveil设备端需更新后确认。
 
 ## 本地验证
 
